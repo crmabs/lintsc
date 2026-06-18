@@ -25,7 +25,10 @@ while IFS= read -r line; do
     # Process "$line" here
     ./in_place_lint_one_file.sh "$line"
     if [[ $? -ne 0 ]]; then
+		echo "PROBLEM with file: ${line}"
+		echo ""
 		./backup_restore.sh "${proot}"
+		echo " files restored - but you must fix the code"
 		exit 1
     fi
 done < <( find "${proot}" -type f \( -name "*.sc" -o -name "*.scd" \)  )

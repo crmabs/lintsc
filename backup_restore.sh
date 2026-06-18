@@ -7,7 +7,8 @@ fi
 
 proot=$( realpath "$proot" )
 
-echo "making backup of folder:[${proot}]"
+echo ""
+echo "restoring backup of folder:[${proot}]"
 while IFS= read -r line; do
     # Process "$line" here
 	cf=$( basename -s .bak "$line" )
