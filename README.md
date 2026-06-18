@@ -1,3 +1,7 @@
+This is a simple standalone script to format SuperCollider Sclang files mainly *.sc and *.scd.
+Coded by some ml coding agent given the following instructions:
+
+
 Name: LintSc
 
 Description: Supercollider sclang linter utility that formats sclang source files written in Python
