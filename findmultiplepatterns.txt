@@ -1,0 +1,22 @@
+To search for files matching multiple filename patterns in Linux Bash, use the -o (OR) operator within escaped parentheses \( ... \) combined with the -name flag. 
+
+Basic Syntax for Multiple Patterns (OR Logic)
+
+find . -type f \( -name "*.sh" -o -name "*.txt" -o -name "*.log" \)
+
+-type f: Ensures only regular files are matched, not directories. 
+\( and \): Parentheses must be escaped with backslashes to prevent the shell from interpreting them as grouping operators; they group the -name conditions. 
+-o: Acts as the logical OR operator, matching files that satisfy any of the enclosed patterns. 
+Excluding Multiple Patterns To find files that do not match specific patterns, use the negation operator ! (or -not) before each -name condition:
+
+find . -type f ! -name "*.tmp" ! -name "*.bak"
+
+Using Regex for Complex Patterns For more complex matching, use -regex with -regextype:
+
+find . -type f -regextype posix-extended -regex ".*\.(sh|txt|log)"
+
+Key Considerations
+
+Precedence: The -a (AND) operator has higher precedence than -o (OR). Always use parentheses to explicitly group OR conditions if mixing them with other predicates like -mtime or -size. 
+Case Sensitivity: Use -iname instead of -name for case-insensitive matching (e.g., matching both .txt and .TXT). 
+Performance: Using -name is generally faster than -regex as it avoids compiling regular expressions. 
