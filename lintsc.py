@@ -165,10 +165,22 @@ class LintSc:
         indent_level = 0
         prev_empty_count = 0
         in_block_comment = False
-        
+        nof_lines=len(lines)
+
         for i, line in enumerate(lines):
             stripped = line.lstrip()
             
+            if len(stripped.rstrip()) == 0 and i<nof_lines-1:
+                kov_sor=lines[i+1].lstrip().rstrip();
+                if '}' == kov_sor:
+                    print("nyomorult")
+                    continue;
+            # 
+            #     print("nyomorult")
+            #    
+            #         continue;
+
+
             # Track block comments
             if '/*' in line and '*/' not in line:
                 in_block_comment = True
