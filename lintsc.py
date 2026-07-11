@@ -172,13 +172,21 @@ class LintSc:
             
             if len(stripped.rstrip()) == 0 and i<nof_lines-1:
                 kov_sor=lines[i+1].lstrip().rstrip();
-                if '}' == kov_sor or '});' == kov_sor:
+                if '}' == kov_sor or '});' == kov_sor or '},{' == kov_sor or '};' == kov_sor or '}{' == kov_sor or ']);' == kov_sor:
                     #print("nyomorult")
                     continue;
-            # 
-            #     print("nyomorult")
-            #    
-            #         continue;
+                
+            if '} );' == stripped or '}) ;' == stripped or '} ) ;' == stripped :
+                stripped='});'
+
+            if '} {' == stripped:
+                stripped='}{'
+
+            if '] );' == stripped or ']) ;' == stripped or '] ) ;' == stripped:
+                stripped=']);'
+
+            if '}, {' == stripped or '} ,{' == stripped:
+                stripped='},{'  
 
 
             # Track block comments
