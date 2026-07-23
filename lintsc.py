@@ -195,6 +195,10 @@ class LintSc:
             stripped = stripped.replace(';\t', ';')
             stripped = stripped.replace(';\t\t', ';\t')
 
+            stripped = stripped.replace('} }','}}');
+            stripped = stripped.replace('  }',' }');
+            stripped = stripped.replace('\t}','}');
+
             # Track block comments
             if '/*' in line and '*/' not in line:
                 in_block_comment = True
