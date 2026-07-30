@@ -204,6 +204,9 @@ class LintSc:
             stripped = stripped.replace('  )', ' )');
             stripped = stripped.replace('  ,', ' ,');
             stripped = stripped.replace(',  ', ', ');
+            stripped = stripped.replace('|  ', '| ');
+            stripped = stripped.replace('  |', ' |');
+            stripped = stripped.replace('. ', '.');
 
             # Track block comments
             if '/*' in line and '*/' not in line:
