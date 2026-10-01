@@ -202,6 +202,10 @@ class LintSc:
             stripped = stripped.replace('{^', '{ ^');
             stripped = stripped.replace(' ;', ';');
             stripped = stripped.replace('  )', ' )');
+            stripped = stripped.replace('(  ', '( ');
+            stripped = stripped.replace('{  ', '{ ');
+            stripped = stripped.replace('( {', '({');
+            stripped = stripped.replace('} )', '})');
             stripped = stripped.replace('  ,', ' ,');
             stripped = stripped.replace('\t,', ' ,');
             stripped = stripped.replace(',  ', ', ');
