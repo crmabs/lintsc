@@ -33,12 +33,14 @@ python3 lintsc.py -h
 ## Features
 
 ### Formatting Rules
-1. **Empty Lines**: Maintains a maximum of 2 consecutive empty lines (more compact formatting)
-2. **Comments Preserved**: 
-   - Line comments (`//`) are preserved and properly indented
-   - Block comments (`/* ... */`) are preserved exactly as-is
-3. **Indentation**: Uses tab characters for indentation, following sclang conventions similar to JavaScript and C#
-4. **Bracket Validation**: Verifies all bracket pairs are properly matched:
+1. **Empty Lines**: Keeps at most 2 consecutive empty lines outside bracketed blocks and 1 inside
+2. **Whitespace**: Trims trailing whitespace and normalizes redundant spacing without changing string contents
+3. **Redundant Semicolons**: Collapses repeated `;` characters in code to one. Repeated semicolons are rejected by sclang; semicolons in strings and comments are left unchanged
+4. **Comments Preserved**:
+   - Line comments (`//`) retain their text and are indented with the code
+   - Block comments (`/* ... */`) are preserved exactly as-is and are not indented
+5. **Indentation**: Uses tab characters for indentation, following sclang conventions similar to JavaScript and C#
+6. **Bracket Validation**: Verifies all bracket pairs are properly matched:
    - `{}` - Curly braces
    - `[]` - Square brackets
    - `()` - Parentheses
@@ -120,10 +122,10 @@ Output:
 - `.scd` - SuperCollider document files
 
 ## Notes
-- The original source code structure is preserved
-- Only whitespace, tabs, and newlines are modified
-- String literals and characters are handled correctly
-- The tool is conservative - it won't modify anything unless necessary
+- The formatter preserves source tokens except for collapsing repeated semicolons outside strings and comments
+- String literals and block-comment contents are preserved exactly
+- Line-comment text is retained; leading indentation and trailing whitespace are normalized
+- Formatting is idempotent: formatting an already formatted file does not change it
 
 ## Exit Codes
 - `0` - Successful formatting

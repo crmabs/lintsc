@@ -6,7 +6,6 @@ Formats sclang source files written in Python
 
 import sys
 import argparse
-import os
 from pathlib import Path
 
 
@@ -27,70 +26,88 @@ class LintSc:
         self.block_comment_start_line = 0
         
     def validate_brackets(self, content):
-        """Validate that all brackets are properly paired"""
+        """Validate bracket pairs while ignoring strings and comments."""
+        self.bracket_stack = []
+        self.in_block_comment = False
         in_line_comment = False
-        in_string = False
         string_char = None
-        
-        for line_num, line in enumerate(content.split('\n'), 1):
-            # Track block comments
-            i = 0
-            while i < len(line):
-                # Check for string literals
-                if not in_line_comment and not self.in_block_comment:
-                    if line[i] in ('"', "'") and (i == 0 or line[i-1] != '\\'):
-                        if not in_string:
-                            in_string = True
-                            string_char = line[i]
-                        elif line[i] == string_char:
-                            in_string = False
-                
-                # Check for block comment start
-                if not in_line_comment and not in_string and i < len(line) - 1:
-                    if line[i:i+2] == '/*':
-                        self.in_block_comment = True
-                        self.block_comment_start_line = line_num
-                        i += 2
-                        continue
-                
-                # Check for block comment end
-                if self.in_block_comment and i < len(line) - 1:
-                    if line[i:i+2] == '*/':
-                        self.in_block_comment = False
-                        i += 2
-                        continue
-                
-                # Check for line comment
-                if not self.in_block_comment and not in_string and i < len(line) - 1:
-                    if line[i:i+2] == '//':
-                        in_line_comment = True
-                        break
-                
-                # Check brackets only outside comments and strings
-                if not in_line_comment and not self.in_block_comment and not in_string:
-                    if line[i] in self.bracket_pairs:
-                        self.bracket_stack.append((line[i], line_num, i+1))
-                    elif line[i] in self.closing_brackets:
-                        if not self.bracket_stack:
-                            raise BracketMismatchError(
-                                f"Line {line_num}, Column {i+1}: Unexpected closing bracket '{line[i]}'"
-                            )
-                        opening, start_line, start_col = self.bracket_stack.pop()
-                        expected_closing = self.bracket_pairs[opening]
-                        if line[i] != expected_closing:
-                            raise BracketMismatchError(
-                                f"Line {line_num}, Column {i+1}: Found '{line[i]}' but expected '{expected_closing}' "
-                                f"(matching '{opening}' from line {start_line}, column {start_col})"
-                            )
-                
-                i += 1
-            
-            in_line_comment = False
-        
+        escaped = False
+        line_num = 1
+        column = 1
+        index = 0
+
+        while index < len(content):
+            char = content[index]
+            pair = content[index:index + 2]
+
+            if char == '\n':
+                line_num += 1
+                column = 1
+                in_line_comment = False
+                index += 1
+                continue
+
+            if in_line_comment:
+                index += 1
+                column += 1
+                continue
+
+            if self.in_block_comment:
+                if pair == '*/':
+                    self.in_block_comment = False
+                    index += 2
+                    column += 2
+                else:
+                    index += 1
+                    column += 1
+                continue
+
+            if string_char is not None:
+                if escaped:
+                    escaped = False
+                elif char == '\\':
+                    escaped = True
+                elif char == string_char:
+                    string_char = None
+                index += 1
+                column += 1
+                continue
+
+            if pair == '//':
+                in_line_comment = True
+                index += 2
+                column += 2
+                continue
+            if pair == '/*':
+                self.in_block_comment = True
+                self.block_comment_start_line = line_num
+                index += 2
+                column += 2
+                continue
+            if char in ('"', "'"):
+                string_char = char
+            elif char in self.bracket_pairs:
+                self.bracket_stack.append((char, line_num, column))
+            elif char in self.closing_brackets:
+                if not self.bracket_stack:
+                    raise BracketMismatchError(
+                        f"Line {line_num}, Column {column}: Unexpected closing bracket '{char}'"
+                    )
+                opening, start_line, start_col = self.bracket_stack.pop()
+                expected_closing = self.bracket_pairs[opening]
+                if char != expected_closing:
+                    raise BracketMismatchError(
+                        f"Line {line_num}, Column {column}: Found '{char}' but expected '{expected_closing}' "
+                        f"(matching '{opening}' from line {start_line}, column {start_col})"
+                    )
+
+            index += 1
+            column += 1
+
         if self.bracket_stack:
-            opening, line_num, col = self.bracket_stack[0]
+            opening, opening_line, opening_column = self.bracket_stack[0]
             raise BracketMismatchError(
-                f"Line {line_num}, Column {col}: Unclosed bracket '{opening}'"
+                f"Line {opening_line}, Column {opening_column}: Unclosed bracket '{opening}'"
             )
     
     def get_indent_level(self, line, indent_level):
@@ -103,48 +120,69 @@ class LintSc:
         
         return indent_level
     
-    def count_indent_change(self, line):
-        """Count how indent level should change after this line"""
-        in_string = False
-        string_char = None
-        in_line_comment = False
-        in_block_comment = False
-        
+    def _scan_line(self, line, state):
+        """Return bracket changes and whether a line contains preserved text."""
         change = 0
-        i = 0
-        
-        while i < len(line):
-            # Track strings
-            if line[i] in ('"', "'") and (i == 0 or line[i-1] != '\\'):
-                if not in_string:
-                    in_string = True
-                    string_char = line[i]
-                elif line[i] == string_char:
-                    in_string = False
-            
-            # Track line comments
-            if not in_string and not in_block_comment and i < len(line) - 1:
-                if line[i:i+2] == '//':
-                    in_line_comment = True
-                    break
-            
-            # Track block comments
-            if not in_string and not in_line_comment and i < len(line) - 1:
-                if line[i:i+2] == '/*':
-                    in_block_comment = True
-                elif line[i:i+2] == '*/':
-                    in_block_comment = False
-                    i += 1
-            
-            # Count bracket changes (not in comments or strings)
-            if not in_string and not in_line_comment and not in_block_comment:
-                if line[i] in ('{', '[', '('):
-                    change += 1
-                elif line[i] in ('}', ']', ')'):
-                    change -= 1
-            
-            i += 1
-        
+        leading_closers = 0
+        at_leading_code = True
+        preserve_line = state['in_block_comment'] or state['string_char'] is not None
+        index = 0
+
+        while index < len(line):
+            char = line[index]
+            pair = line[index:index + 2]
+
+            if state['in_block_comment']:
+                if pair == '*/':
+                    state['in_block_comment'] = False
+                    index += 2
+                else:
+                    index += 1
+                continue
+
+            if state['string_char'] is not None:
+                if state['escaped']:
+                    state['escaped'] = False
+                elif char == '\\':
+                    state['escaped'] = True
+                elif char == state['string_char']:
+                    state['string_char'] = None
+                index += 1
+                continue
+
+            if pair == '//':
+                break
+            if pair == '/*':
+                state['in_block_comment'] = True
+                preserve_line = preserve_line or at_leading_code
+                index += 2
+                continue
+            if char in ('"', "'"):
+                state['string_char'] = char
+                state['escaped'] = False
+                at_leading_code = False
+            elif char in self.bracket_pairs:
+                change += 1
+                at_leading_code = False
+            elif char in self.closing_brackets:
+                change -= 1
+                if at_leading_code:
+                    leading_closers += 1
+                else:
+                    at_leading_code = False
+            elif not char.isspace():
+                at_leading_code = False
+
+            index += 1
+
+        if state['in_block_comment'] or state['string_char'] is not None:
+            preserve_line = True
+        return change, leading_closers, preserve_line
+
+    def count_indent_change(self, line):
+        """Count bracket changes on a line, ignoring strings and comments."""
+        state = {'in_block_comment': False, 'string_char': None, 'escaped': False}
+        change, _, _ = self._scan_line(line, state)
         return change
     
     def should_skip_indent(self, line):
@@ -158,102 +196,119 @@ class LintSc:
         # Block comments are handled specially
         return False
     
+    @staticmethod
+    def _clean_code_line(line):
+        """Normalize redundant code whitespace and collapse empty statements."""
+        output = []
+        pending_space = False
+        previous_code_char = None
+        string_char = None
+        escaped = False
+        index = 0
+
+        while index < len(line):
+            char = line[index]
+            pair = line[index:index + 2]
+
+            if string_char is not None:
+                output.append(char)
+                if escaped:
+                    escaped = False
+                elif char == '\\':
+                    escaped = True
+                elif char == string_char:
+                    string_char = None
+                    previous_code_char = char
+                index += 1
+                continue
+
+            if pair == '/*':
+                if pending_space and output:
+                    output.append(' ')
+                pending_space = False
+                comment_end = line.find('*/', index + 2)
+                if comment_end == -1:
+                    output.append(line[index:])
+                    break
+                output.append(line[index:comment_end + 2])
+                index = comment_end + 2
+                continue
+
+            if pair == '//':
+                if pending_space and output:
+                    output.append(' ')
+                output.append(line[index:].rstrip())
+                break
+
+            if char in ('"', "'"):
+                if pending_space and output:
+                    output.append(' ')
+                pending_space = False
+                string_char = char
+                output.append(char)
+                previous_code_char = char
+                index += 1
+                continue
+
+            if char.isspace():
+                pending_space = True
+                index += 1
+                continue
+
+            if char in ',;.)]}':
+                pending_space = False
+                if char == ';' and previous_code_char == ';':
+                    index += 1
+                    continue
+                output.append(char)
+                previous_code_char = char
+                index += 1
+                continue
+
+            if char == '{' and previous_code_char == '}':
+                pending_space = False
+            elif char == '^' and previous_code_char == '{':
+                output.append(' ')
+                pending_space = False
+            elif pending_space and output:
+                output.append(' ')
+                pending_space = False
+            else:
+                pending_space = False
+
+            output.append(char)
+            previous_code_char = char
+            index += 1
+
+        return ''.join(output)
+
     def format_content(self, content):
-        """Format the content according to linting rules"""
-        lines = content.split('\n')
+        """Format code while preserving literal and comment contents."""
         formatted_lines = []
         indent_level = 0
-        prev_empty_count = 0
-        in_block_comment = False
-        nof_lines=len(lines)
+        empty_line_count = 0
+        state = {'in_block_comment': False, 'string_char': None, 'escaped': False}
 
-        for i, line in enumerate(lines):
-            stripped = line.lstrip()
-            
-            if len(stripped.rstrip()) == 0 and i<nof_lines-1:
-                kov_sor=lines[i+1].lstrip().rstrip();
-                if '}' == kov_sor or '});' == kov_sor or '},{' == kov_sor or '};' == kov_sor or '}{' == kov_sor or ']);' == kov_sor:
-                    #print("nyomorult")
-                    continue;
-                
-            if '} );' == stripped or '}) ;' == stripped or '} ) ;' == stripped :
-                stripped='});'
+        for line in content.split('\n'):
+            change, leading_closers, preserve_line = self._scan_line(line, state)
 
-            if '} {' == stripped:
-                stripped='}{'
-
-            if '] );' == stripped or ']) ;' == stripped or '] ) ;' == stripped:
-                stripped=']);'
-
-            if '}, {' == stripped or '} ,{' == stripped:
-                stripped='},{'  
-
-
-            stripped = stripped.replace('{\t', '{')
-            stripped = stripped.replace('{\t\t', '{\t')
-            
-            stripped = stripped.replace(';\t', ';')
-            stripped = stripped.replace(';\t\t', ';\t')
-
-            stripped = stripped.replace('} }','}}');
-            stripped = stripped.replace('  }',' }');
-            stripped = stripped.replace('\t}','}');
-
-            stripped = stripped.replace('{^', '{ ^');
-            stripped = stripped.replace(' ;', ';');
-            stripped = stripped.replace('  )', ' )');
-            stripped = stripped.replace('(  ', '( ');
-            stripped = stripped.replace('{  ', '{ ');
-            stripped = stripped.replace('( {', '({');
-            stripped = stripped.replace('} )', '})');
-            stripped = stripped.replace('  ,', ' ,');
-            stripped = stripped.replace('\t,', ' ,');
-            stripped = stripped.replace(',  ', ', ');
-            stripped = stripped.replace('|  ', '| ');
-            stripped = stripped.replace('  |', ' |');
-            stripped = stripped.replace('. ', '.');
-
-            stripped = stripped.replace('verbose =', 'verbose=');
-            stripped = stripped.replace('verbose= ', 'verbose=');
-
-
-            # Track block comments
-            if '/*' in line and '*/' not in line:
-                in_block_comment = True
-            elif '*/' in line:
-                in_block_comment = False
-            
-            # Handle block comments - don't indent them
-            if in_block_comment or (line.strip().startswith('/*') and '*/' in line):
+            if preserve_line:
                 formatted_lines.append(line)
-                prev_empty_count += 1 if not stripped else 0
-                continue
-            
-            # Handle empty lines
-            if not stripped:
-                # Keep max 2 empty lines outside functions, max 1 inside
-                # For simplicity, we'll enforce max 2 consecutive empty lines
-                if prev_empty_count < 2:
-                    formatted_lines.append('')
-                    prev_empty_count += 1
-                continue
-            
-            prev_empty_count = 0
-            
-            # Determine indentation for this line
-            current_indent = self.get_indent_level(stripped, indent_level)
-            
-            # Handle line comments - indent them like code
-            if stripped.startswith('//'):
-                formatted_lines.append('\t' * current_indent + stripped)
+                empty_line_count = 0
             else:
-                # Regular code line - format it
-                formatted_lines.append('\t' * current_indent + stripped)
-            
-            # Update indent level for next line based on brackets in current line
-            indent_level += self.count_indent_change(line)
-            indent_level = max(0, indent_level)
-        
+                cleaned = self._clean_code_line(line).strip()
+                if not cleaned:
+                    max_empty_lines = 1 if indent_level else 2
+                    if empty_line_count < max_empty_lines:
+                        formatted_lines.append('')
+                        empty_line_count += 1
+                else:
+                    current_indent = max(0, indent_level - leading_closers)
+                    formatted_lines.append('\t' * current_indent + cleaned)
+                    empty_line_count = 0
+
+            indent_level = max(0, indent_level + change)
+
         return '\n'.join(formatted_lines)
     
     def process_file(self, input_file, output_file=None):

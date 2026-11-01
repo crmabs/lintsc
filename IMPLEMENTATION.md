@@ -27,11 +27,13 @@ Comprehensive guide including:
 ## Key Features Implemented
 
 ### ✅ Formatting Rules
-- ✓ Maximum 2 consecutive empty lines outside functions
+- ✓ Maximum 2 consecutive empty lines outside bracketed blocks and 1 inside
 - ✓ Proper indentation using tabs (sclang convention)
-- ✓ Line comments preserved with indentation
-- ✓ Block comments preserved exactly
-- ✓ Bracket-based indentation logic
+- ✓ Redundant whitespace is normalized without changing string contents
+- ✓ Repeated semicolons are collapsed outside strings and comments
+- ✓ Line comments are indented and trailing whitespace is trimmed
+- ✓ Block comments are preserved exactly
+- ✓ Bracket-based indentation logic ignores strings and comments
 
 ### ✅ Bracket Validation
 - ✓ Validates all bracket pairs: `{}`, `[]`, `()`
@@ -48,15 +50,7 @@ Comprehensive guide including:
 
 ## Testing Results
 
-All tests passed successfully:
-```
-✓ Help command displays correctly
-✓ Default output naming (f_ prefix) works
-✓ Custom output file path works
-✓ Bracket validation catches errors
-✓ File not found error handling works
-✓ Comprehensive formatting test passed
-```
+The focused `unittest` suite covers formatting, idempotence, comments and strings, semicolon cleanup, and bracket validation. Formatter output containing collapsed semicolons was also executed successfully by `sclang`.
 
 ## Usage Examples
 
