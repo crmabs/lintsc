@@ -84,6 +84,17 @@ class LintSc:
                 index += 2
                 column += 2
                 continue
+            if char == '$':
+                index += 1
+                column += 1
+                if index < len(content) and content[index] != '\n':
+                    if content[index] == '\\' and index + 1 < len(content) and content[index + 1] != '\n':
+                        index += 2
+                        column += 2
+                    else:
+                        index += 1
+                        column += 1
+                continue
             if char in ('"', "'"):
                 string_char = char
             elif char in self.bracket_pairs:
@@ -156,6 +167,15 @@ class LintSc:
                 state['in_block_comment'] = True
                 preserve_line = preserve_line or at_leading_code
                 index += 2
+                continue
+            if char == '$':
+                at_leading_code = False
+                index += 1
+                if index < len(line):
+                    if line[index] == '\\' and index + 1 < len(line):
+                        index += 2
+                    else:
+                        index += 1
                 continue
             if char in ('"', "'"):
                 state['string_char'] = char
@@ -240,6 +260,18 @@ class LintSc:
                 output.append(line[index:].rstrip())
                 break
 
+            if char == '$':
+                if pending_space and output:
+                    output.append(' ')
+                pending_space = False
+                literal_end = index + 2
+                if index + 1 < len(line) and line[index + 1] == '\\' and index + 2 < len(line):
+                    literal_end = index + 3
+                output.append(line[index:literal_end])
+                previous_code_char = None
+                index = literal_end
+                continue
+
             if char in ('"', "'"):
                 if pending_space and output:
                     output.append(' ')
@@ -296,7 +328,7 @@ class LintSc:
                 formatted_lines.append(line)
                 empty_line_count = 0
             else:
-                cleaned = self._clean_code_line(line).strip()
+                cleaned = self._clean_code_line(line).lstrip()
                 if not cleaned:
                     max_empty_lines = 1 if indent_level else 2
                     if empty_line_count < max_empty_lines:

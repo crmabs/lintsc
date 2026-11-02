@@ -13,21 +13,22 @@ echo "linting dir: ${proot}"
 
 
 
+srcpath=$( dirname $( realpath "$0" ) )
 
 
 
-./backup_create.sh "${proot}"
+"${srcpath}"/backup_create.sh "${proot}"
 echo " backup done"
 #trap remove_junk EXIT
 
 
 while IFS= read -r line; do
     # Process "$line" here
-    ./in_place_lint_one_file.sh "$line"
+    "${srcpath}"/in_place_lint_one_file.sh "$line"
     if [[ $? -ne 0 ]]; then
 		echo "PROBLEM with file: ${line}"
 		echo ""
-		./backup_restore.sh "${proot}"
+		"${srcpath}"/backup_restore.sh "${proot}"
 		echo " files restored - but you must fix the code"
 		exit 1
     fi
@@ -44,11 +45,11 @@ if [[ "$2" == "-s" ]]; then
 	timeout -s SIGQUIT 6 sclang -d "$3" "$4"
 	if [[ $? -eq 0 ]]; then
 		echo "compile failed ->"
-		./backup_restore.sh "${proot}"
+		"${srcpath}"/backup_restore.sh "${proot}"
 		exit 1
 	else
 		echo "OK compiled OK"
-		./backup_delete.sh "${proot}"
+		"${srcpath}"/backup_delete.sh "${proot}"
 		exit 0
 	fi
 
@@ -57,7 +58,7 @@ if [[ "$2" == "-s" ]]; then
 else
 
 	echo "skipping execution test.   Specif -s workdir startfile "
-	./backup_delete.sh "${proot}"
+	"${srcpath}"/backup_delete.sh "${proot}"
 	echo "Done."
 	exit 0
 

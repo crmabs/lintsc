@@ -34,13 +34,14 @@ python3 lintsc.py -h
 
 ### Formatting Rules
 1. **Empty Lines**: Keeps at most 2 consecutive empty lines outside bracketed blocks and 1 inside
-2. **Whitespace**: Trims trailing whitespace and normalizes redundant spacing without changing string contents
-3. **Redundant Semicolons**: Collapses repeated `;` characters in code to one. Repeated semicolons are rejected by sclang; semicolons in strings and comments are left unchanged
-4. **Comments Preserved**:
+2. **Whitespace**: Trims trailing whitespace and normalizes redundant spacing without changing literal contents
+3. **SuperCollider Character Literals**: Keeps `$x` literals intact, including whitespace and punctuation characters such as `$ ` and `$)`
+4. **Redundant Semicolons**: Collapses repeated `;` characters in code to one. Repeated semicolons are rejected by sclang; semicolons in strings and comments are left unchanged
+5. **Comments Preserved**:
    - Line comments (`//`) retain their text and are indented with the code
    - Block comments (`/* ... */`) are preserved exactly as-is and are not indented
-5. **Indentation**: Uses tab characters for indentation, following sclang conventions similar to JavaScript and C#
-6. **Bracket Validation**: Verifies all bracket pairs are properly matched:
+6. **Indentation**: Uses tab characters for indentation, following sclang conventions similar to JavaScript and C#
+7. **Bracket Validation**: Verifies all bracket pairs are properly matched:
    - `{}` - Curly braces
    - `[]` - Square brackets
    - `()` - Parentheses

@@ -14,7 +14,7 @@ Rules of formatting:
 - Normalize line-comment indentation and remove trailing whitespace
 - Preserve block comments exactly as written and do not indent them
 - Indent the source file according to sclang traditions. Very similar to javascript or c#. Make it compact and easy to read
-- Normalize redundant whitespace while preserving strings, comments, and code tokens
+- Normalize redundant whitespace while preserving strings, comments, SuperCollider character literals, and code tokens
 - Collapse repeated semicolons outside strings and comments to one; repeated semicolons are invalid in sclang
 - Verify opening and closing of brackets. They must be present as pairs always. The bracket pairs are: {} [] ()
 - Verify occurrences of unpaired closing brackets. These are: } ] )

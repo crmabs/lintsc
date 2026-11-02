@@ -19,6 +19,15 @@ class LintScTests(unittest.TestCase):
 
         self.assertEqual(LintSc().format_content(source), expected)
 
+    def test_supercollider_character_literals_preserve_whitespace_and_brackets(self):
+        source = 'call($ ); call($));'
+
+        formatter = LintSc()
+        formatter.validate_brackets(source)
+
+        self.assertEqual(formatter.format_content(source), source)
+        self.assertEqual(formatter.format_content('$ '), '$ ')
+
     def test_formatting_preserves_strings_and_comments(self):
         source = (
             '" two  spaces ;; and \\\" ( bracket";   // comment ;;  \n'

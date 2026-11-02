@@ -78,8 +78,8 @@ python3 lintsc.py -h
 - Robust error handling with descriptive messages
 
 ### String and Comment Handling
-- Properly handles string literals (both single and double quotes)
-- Escapes sequences are respected
+- Properly handles string literals (both single and double quotes) and SuperCollider `$x` character literals
+- Escape sequences are respected
 - Comments are intelligently skipped during bracket validation
 - Multi-line block comments are preserved without modification
 
